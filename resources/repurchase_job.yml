@@ -9,8 +9,8 @@ resources:
       parameters:
         - name: catalog
           default: ${var.catalog}
-        - name: fail_on_no_promote
-          default: ${var.fail_on_no_promote}
+        - name: fail_on_regression
+          default: ${var.fail_on_regression}
       tasks:
         - task_key: feature_prep
           notebook_task:
