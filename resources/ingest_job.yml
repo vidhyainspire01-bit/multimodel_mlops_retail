@@ -1,0 +1,15 @@
+resources:
+  jobs:
+    ingest_hm:
+      name: ingest-hm-${bundle.target}
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: raw_path
+          default: ${var.raw_path}
+        - name: sample_customers
+          default: ${var.sample_customers}
+      tasks:
+        - task_key: ingest
+          notebook_task:
+            notebook_path: ../notebooks/01_ingest_hm.py

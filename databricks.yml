@@ -1,0 +1,46 @@
+bundle:
+  name: ecommerce-mlops
+
+variables:
+  catalog:
+    description: Unity Catalog catalog for the target environment
+  fail_on_no_promote:
+    description: If "true", the evaluate task fails when the challenger does not beat the champion
+    default: "false"
+  raw_path:
+    description: UC Volume folder holding the raw Kaggle H&M CSV files
+    default: /Volumes/dev_ml/hm/raw
+  sample_customers:
+    description: Number of customers to sample for the demo
+    default: "200000"
+
+include:
+  - resources/*.yml
+
+# Workspace host and credentials come from DATABRICKS_HOST / DATABRICKS_CLIENT_ID /
+# DATABRICKS_CLIENT_SECRET (GitHub Environment secrets in CI). One workspace, three catalogs.
+targets:
+  dev:
+    mode: development
+    default: true
+    variables:
+      catalog: dev_ml
+
+  staging:
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/staging
+    variables:
+      catalog: stage_ml
+      fail_on_no_promote: "true"   # CI must go red if the gate rejects the challenger
+
+  prod:
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/prod
+    variables:
+      catalog: prod_ml
+      fail_on_no_promote: "false"  # scheduled retrain: keep champion, do not page anyone
+    resources:
+      jobs:
+        repurchase_pipeline:
+          schedule:
+            pause_status: UNPAUSED

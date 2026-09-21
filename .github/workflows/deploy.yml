@@ -1,0 +1,43 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle validate -t staging
+      - run: databricks bundle deploy -t staging
+      - run: databricks bundle run -t staging ingest_hm
+      # Integration test: train, champion-vs-challenger gate, batch score, output assertions.
+      # Any failing task fails this job, which blocks the prod job below.
+      - run: databricks bundle run -t staging repurchase_pipeline
+
+  prod:
+    needs: staging
+    runs-on: ubuntu-latest
+    environment: production   # add "Required reviewers" in GitHub -> Settings -> Environments
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: databricks/setup-cli@main
+      - run: databricks bundle deploy -t prod
+      - run: databricks bundle run -t prod ingest_hm
+      # Smoke run so you can see prod go green; afterwards the Monday schedule takes over.
+      - run: databricks bundle run -t prod repurchase_pipeline

@@ -1,0 +1,43 @@
+resources:
+  jobs:
+    repurchase_pipeline:
+      name: repurchase-${bundle.target}
+      schedule:
+        quartz_cron_expression: "0 0 6 ? * MON"   # Monday 06:00
+        timezone_id: Asia/Dubai                    # change if needed
+        pause_status: PAUSED                       # only prod unpauses (see databricks.yml)
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: fail_on_no_promote
+          default: ${var.fail_on_no_promote}
+      tasks:
+        - task_key: feature_prep
+          notebook_task:
+            notebook_path: ../notebooks/repurchase/feature_prep.py
+
+        - task_key: train
+          depends_on:
+            - task_key: feature_prep
+          notebook_task:
+            notebook_path: ../notebooks/repurchase/train.py
+
+        - task_key: evaluate
+          depends_on:
+            - task_key: train
+          notebook_task:
+            notebook_path: ../notebooks/repurchase/evaluate.py
+            base_parameters:
+              challenger_version: "{{tasks.train.values.challenger_version}}"
+
+        - task_key: batch_score
+          depends_on:
+            - task_key: evaluate
+          notebook_task:
+            notebook_path: ../notebooks/repurchase/batch_score.py
+
+        - task_key: assert_outputs
+          depends_on:
+            - task_key: batch_score
+          notebook_task:
+            notebook_path: ../notebooks/repurchase/assert_outputs.py
