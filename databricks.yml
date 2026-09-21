@@ -4,8 +4,8 @@ bundle:
 variables:
   catalog:
     description: Unity Catalog catalog for the target environment
-  fail_on_no_promote:
-    description: If "true", the evaluate task fails when the challenger does not beat the champion
+  fail_on_regression:
+    description: If "true", the evaluate task fails when the challenger regresses vs the champion or misses the baseline
     default: "false"
   raw_path:
     description: UC Volume folder holding the raw Kaggle H&M CSV files
@@ -31,14 +31,14 @@ targets:
       root_path: /Workspace/Shared/.bundle/${bundle.name}/staging
     variables:
       catalog: stage_ml
-      fail_on_no_promote: "true"   # CI must go red if the gate rejects the challenger
+      fail_on_regression: "true"   # CI must go red if the gate rejects the challenger
 
   prod:
     workspace:
       root_path: /Workspace/Shared/.bundle/${bundle.name}/prod
     variables:
       catalog: prod_ml
-      fail_on_no_promote: "false"  # scheduled retrain: keep champion, do not page anyone
+      fail_on_regression: "false"  # scheduled retrain: keep champion, do not page anyone
     resources:
       jobs:
         repurchase_pipeline:
