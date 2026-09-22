@@ -41,3 +41,9 @@ resources:
             - task_key: batch_score
           notebook_task:
             notebook_path: ../notebooks/repurchase/assert_outputs.py
+
+        - task_key: package_serving_model
+          depends_on:
+            - task_key: assert_outputs
+          notebook_task:
+            notebook_path: ../notebooks/repurchase/package_serving_model.py
